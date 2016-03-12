@@ -39,20 +39,22 @@ class IbvsEih(object):
     def __init__(self):
         # Baxter specific code. You don't need this if you're using another robot.
         # Sets the arm that is used for the servoing
-        limb='right'
+        limb='left'
         self._baxter = BaxterVS(limb)
 
         # AprilTag specific code. You don't need this if you're using another tracking system.
         # Initializes the marker that the arm should track
         target_marker = 0
         self._apriltag_client = AprilTagClient(target_marker)
-        
+
         self._visual_servo = VisualServoing(ibvs=True)
+
     
     def new_image_arrived(self):
         """
         Boolean to test if a new image has arrived.
         """
+        print "waiting for new image"
         if self._apriltag_client.corners is not None:
             self._apriltag_client.corners = None
             return True
@@ -64,7 +66,7 @@ class IbvsEih(object):
         """
         # This method currently uses AprilTag detections, so replace with
         # your own method if otherwise.
-
+        # print "looking for corners"
         return self._apriltag_client.corners
     
     def _command_velocity(self,vel):
@@ -82,31 +84,39 @@ class IbvsEih(object):
         Sets the final camera depth (Z) and desired position for the tracked features
         at the goal position.
         """
-        ideal_cam_pose = np.array([0,0,Z])
-        self._vision_servo.set_target(ideal_cam_pose,None,desired_corners)
+
+
+        Z = final_camera_depth
+        ideal_cam_pose = np.array([0,0,Z])       
+        self._visual_servo.set_target(ideal_cam_pose,None,desired_corners)
     
     def move_to_position(self,final_camera_depth,desired_corners,dist_tol):
         """
         Runs one instance of the visual servoing control law. Call when a new
         image has arrived.
         """
+        
         self.set_target(final_camera_depth,desired_corners)
         r = rospy.Rate(60)
+        error = 1000
         while np.linalg.norm(error)>dist_tol and not rospy.is_shutdown():
-            if not self.new_image_arrived():
-                continue
+            # if not self.new_image_arrived():
+            #     # print " no new_image_arrived"
+            #     continue
             
             # Continue if no corners detected
             marker_corners = self._get_detected_corners()
             if marker_corners is None:
+                print "no marker corners"
                 continue
 
             # Don't move if the target hasn't been set
             if not self._visual_servo._target_set:
+                print "the target hasn't been set"
                 continue
             
             # Get control law velocity and transform to body frame, then send to robot
-            servo_vel = self._visual_servo.get_next_vel(corners = marker_corners)
+            servo_vel, error = self._visual_servo.get_next_vel(corners = marker_corners)
             self._command_velocity(servo_vel)
             r.sleep()
 

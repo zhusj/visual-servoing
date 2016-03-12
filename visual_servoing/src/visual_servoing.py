@@ -133,4 +133,4 @@ class VisualServoing(object):
 
         vel=-self._lambda*np.dot(np.linalg.inv(L),error)
 
-        return vel
+        return vel, error

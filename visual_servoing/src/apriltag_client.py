@@ -86,6 +86,8 @@ class AprilTagClient(object):
         try:
             cv_image=self._bridge.imgmsg_to_cv2(image,"bgr8")
             self.image=cv_image
+            plt.figure(1);
+            plt.show(plt.imshow(cv_image))
         except CvBridgeError, e:
             print e
 
@@ -103,4 +105,5 @@ class AprilTagClient(object):
             return
 
         (self.marker_t,self.marker_R)=get_t_R(apriltag_detections.detections[marker_pos].pose.pose)
+        print "looking for corners"
         self.corners = np.array(apriltag_detections.detections[marker_pos].corners)

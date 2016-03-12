@@ -21,6 +21,7 @@ from geometry_msgs.msg import (
     Quaternion,
 )
 
+
 class BaxterVS(object):
     """
     Wrapper class to interface baxter python functions (possibly GRASP specific) with visual servoing needs.
@@ -28,7 +29,8 @@ class BaxterVS(object):
     def __init__(self,limb):
         # Personal function to open right hand camera at half resolution. Replace with your own as needed.
         # (The apriltags_ros package is too slow with full resolution).
-        #baxter.open_right_arm_cam_small()
+        baxter.reset_cameras()
+        baxter.open_right_arm_cam_small()
 
         transform=baxter.get_tf_listener()
         transform.waitForTransform('/' + limb + '_hand','/' + limb + '_hand_camera',rospy.Time(0),rospy.Duration(5.0))
