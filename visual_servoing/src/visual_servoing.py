@@ -42,14 +42,14 @@ class VisualServoing(object):
         # Set to true to set all output velocities to test_vel (arm moves according to test_vel).
         self._test_servoing=False
         self._test_vel = np.array([[0.1],[0],[0],[0],[0],[0]])
-        self._L=np.matlib.zeros((2*4,6))
-        self._ideal_feature=np.matlib.zeros((4*2,1))
+        # self._L=np.matlib.zeros((2*4,6))
+        # self._ideal_feature=np.matlib.zeros((4*2,1))
         # Performs ibvs if true, pbvs else.
         self._ibvs = ibvs
 
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda=0.5
+        self._lambda=0.3
 
         self._target_set=False
         
@@ -80,7 +80,7 @@ class VisualServoing(object):
         at each step). While estimating the depth is possible with the tags, it is useful to
         experiment with a constant interaction matrix regardless.
         """
-        for i in range(0,4):
+        for i in range(0,len(self._ideal_corners)/2):
             x=self._ideal_corners[i*2]
             y=self._ideal_corners[i*2+1]
             self._ideal_feature[i*2,0]=x
@@ -131,6 +131,12 @@ class VisualServoing(object):
             target_feature = self._calc_feature(t,R)
         error = target_feature - self._ideal_feature
 
-        vel=-self._lambda*np.dot(np.linalg.inv(L),error)
+        # print 'target_feature: ', target_feature
+        # print 'self._ideal_feature: ', self._ideal_feature
+        # print 'error: ', error
 
+        # print self._L
+        # print L
+        vel=self._lambda*np.dot(np.linalg.pinv(L),error)
+        # print 'vel: ', vel
         return vel, error

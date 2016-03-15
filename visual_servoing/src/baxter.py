@@ -17,6 +17,7 @@ from geometry_msgs.msg import (
 
 import std_srvs.srv
 
+
 def get_tf_listener():
     import roslib
     roslib.load_manifest('tf')
@@ -27,6 +28,7 @@ def reset_cameras():
     reset_srv = rospy.ServiceProxy('cameras/reset', std_srvs.srv.Empty)
     rospy.wait_for_service('cameras/reset', timeout=10)
     reset_srv()
+
 
 def open_right_arm_cam_small():
 
@@ -68,9 +70,16 @@ def get_right_arm_pose():
 	#  camera frame can be applied (as Baxter velocity commands are in base frame). Returns a homogeneous 
 	#  translation vector and rotation matrix.
 	limb_interface = baxter_interface.Limb("right")
-	quaternion_pose = self.limb_interface.endpoint_pose()
+	quaternion_pose = limb_interface.endpoint_pose()
+	# hand_pose ={}
+	hand_pose = Pose()
+	# print 'hand_pose.position:', hand_pose.position
+	# print 'quaternion_pose:  ', quaternion_pose['position']
+	hand_pose.position = quaternion_pose['position']
+	hand_pose.orientation = quaternion_pose['orientation']
+	# print 'hand_pose.position:', hand_pose.position
 
-	return quaternion_pose
+	return hand_pose
 
 
 def print_arm_pose(self):

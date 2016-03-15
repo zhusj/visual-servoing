@@ -21,6 +21,7 @@ def get_t_R(pose):
     """
     Returns the translation vector (4x1) and rotation matrix (4x4) from a pose message
     """
+    # print 'pose.position: ', pose.position
     t=np.transpose(np.matrix([pose.position.x,pose.position.y,pose.position.z,1]))
     quat=[pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     R_full=quaternion_matrix(quat)

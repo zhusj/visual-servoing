@@ -49,7 +49,10 @@ class BaxterVS(object):
         cam2hand = generate_frame_transform(self._cam2hand_t[0:3,:],self._cam2hand_R[0:3,0:3],False)
         # Possibly GRASP specific function?
         hand_pose = baxter.get_right_arm_pose()
+        # print 'hand_pose:', hand_pose
+        # print 'hand_pose.position:', hand_pose.position
         (t,R) = get_t_R(hand_pose)
+        # print 't:', t
         hand2body = generate_frame_transform(t[0:3,:],R[0:3,0:3],True)
         return np.dot(hand2body,np.dot(cam2hand,vector))
         
