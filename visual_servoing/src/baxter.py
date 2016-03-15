@@ -30,9 +30,9 @@ def reset_cameras():
     reset_srv()
 
 
-def open_right_arm_cam_small():
+def open_left_arm_cam_small():
 
-# Opens the right hand camera on the Baxter at half resolution and publishes the images and camera_info to ROS. 
+# Opens the left hand camera on the Baxter at half resolution and publishes the images and camera_info to ROS. 
 # The resolution can be tuned as you'd like, although at full resolution the apriltags_ros package approaches 1Hz. 
 # If you are using your own image topics, please update the apriltags_ros entry in the launch files.
     try:
@@ -65,11 +65,11 @@ def open_right_arm_cam_small():
 	cam.open()
 
 
-def get_right_arm_pose():
-	# Gets the transformation between the right hand camera and the robot base, so that a velocity in the
+def get_arm_pose(limb):
+	# Gets the transformation between the left hand camera and the robot base, so that a velocity in the
 	#  camera frame can be applied (as Baxter velocity commands are in base frame). Returns a homogeneous 
 	#  translation vector and rotation matrix.
-	limb_interface = baxter_interface.Limb("right")
+	limb_interface = baxter_interface.Limb(limb)
 	quaternion_pose = limb_interface.endpoint_pose()
 	# hand_pose ={}
 	hand_pose = Pose()
@@ -80,6 +80,8 @@ def get_right_arm_pose():
 	# print 'hand_pose.position:', hand_pose.position
 
 	return hand_pose
+
+
 
 
 def print_arm_pose(self):

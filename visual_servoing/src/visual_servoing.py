@@ -49,7 +49,7 @@ class VisualServoing(object):
 
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda=0.3
+        self._lambda=0.01
 
         self._target_set=False
         
@@ -80,12 +80,16 @@ class VisualServoing(object):
         at each step). While estimating the depth is possible with the tags, it is useful to
         experiment with a constant interaction matrix regardless.
         """
+        self._ideal_feature = np.matlib.zeros((len(self._ideal_corners),1))
+        self._L=np.matlib.zeros((len(self._ideal_corners),6))
+
         for i in range(0,len(self._ideal_corners)/2):
             x=self._ideal_corners[i*2]
             y=self._ideal_corners[i*2+1]
-            self._ideal_feature[i*2,0]=x
-            self._ideal_feature[i*2+1,0]=y
+            self._ideal_feature[i*2,0]=self._ideal_corners[i*2]
+            self._ideal_feature[i*2+1,0]=self._ideal_corners[i*2+1]
             p = self._ideal_cam_pose
+            # print 'Z: ', p[2]
             Z=p[2]
             self._L[i*2:i*2+2,:]=np.matrix([[-1/Z,0,x/Z,x*y,-(1+x*x),y],[0,-1/Z,y/Z,1+y*y,-x*y,-x]])
 
@@ -131,12 +135,14 @@ class VisualServoing(object):
             target_feature = self._calc_feature(t,R)
         error = target_feature - self._ideal_feature
 
-        # print 'target_feature: ', target_feature
-        # print 'self._ideal_feature: ', self._ideal_feature
+        # print 'target_feature: ', target_feature[0:4]
+        # print 'self._ideal_feature: ', self._ideal_feature[0:4]
         # print 'error: ', error
 
         # print self._L
-        # print L
-        vel=self._lambda*np.dot(np.linalg.pinv(L),error)
-        # print 'vel: ', vel
+        # print 'L: ',L
+        print 'error:', np.linalg.norm(error)/len(error)
+        vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
+        print 'vel: ', vel
+
         return vel, error

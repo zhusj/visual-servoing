@@ -112,7 +112,7 @@ class IbvsEih(object):
         #Replace with your own method if using another manipulator.
         
         baxter_vel = self._baxter.cam_to_body(servo_vel)
-        # print 'baxter_vel: ', baxter_vel
+        print 'baxter_vel: ', baxter_vel
         self._baxter.set_hand_vel(baxter_vel)
     
     def set_target(self,final_camera_depth,desired_corners):
@@ -123,7 +123,8 @@ class IbvsEih(object):
 
 
         Z = final_camera_depth
-        ideal_cam_pose = np.array([0,0,Z])       
+        ideal_cam_pose = np.array([0,0,Z])  
+        # print 'ideal_cam_pose: ', ideal_cam_pose
         self._visual_servo.set_target(ideal_cam_pose,None,desired_corners)
     
     def move_to_position(self,final_camera_depth,desiredImg, desiredkps, desiredkps_npa, desiredFeatures,dist_tol):
@@ -133,7 +134,7 @@ class IbvsEih(object):
         """
         
         # self.set_target(final_camera_depth,desired_corners)
-        r = rospy.Rate(60)
+        # r = rospy.Rate(60)
         error = 1000
         while np.linalg.norm(error)>dist_tol and not rospy.is_shutdown():
             # if not self.new_image_arrived():
@@ -143,11 +144,12 @@ class IbvsEih(object):
             # Continue if no corners detected
             # marker_corners = self._get_detected_corners()
             # img_array = cv2array(self.cv_image)
-            # print self.cv_image
-            cv.WaitKey(1000)
-            (detectedkps, detectedkps_npa, detectedFeatures) = self.detectAndDescribe(self.cv_image)
+            # print self.cv_image.shape
+            # cv.WaitKey(1000)
+            currentI = self.cv_image
+            (detectedkps, detectedkps_npa, detectedFeatures) = self.detectAndDescribe(currentI)
 
-            img=cv2.drawKeypoints(self.cv_image,detectedkps)
+            img=cv2.drawKeypoints(currentI,detectedkps)
             
             # plt.figure(1);
             # plt.show(plt.imshow(img))
@@ -160,12 +162,20 @@ class IbvsEih(object):
             reprojThresh=4.0
             (matches, H, status) = self.matchKeypoints(desiredkps_npa, detectedkps_npa, desiredFeatures, detectedFeatures, ratio, reprojThresh)
             selected_matches_id = np.where(status != 0)[0]
+            # if matches is None:
+            #     # print "no marker corners"
+            #     continue
+            if len(selected_matches_id) < 4:
+                print "no enough matching"
+                continue
+
+            # selected_matches_id = selected_matches_id[0:3]
 
             print 'mathces:', len(selected_matches_id)
+            # print 'desiredkps_npa: ', desiredkps_npa
             # print 'status: ', status
-            vis = self.drawMatches(desiredImg, self.cv_image, desiredkps_npa, detectedkps_npa, matches, status)
-            cv2.imshow("Keypoint Matches", vis)
-            cv2.waitKey(1000)
+
+            # cv2.waitKey(0)
 
             # print desiredkps_npa.shape
             # print detectedkps_npa.shape
@@ -175,6 +185,7 @@ class IbvsEih(object):
 
             desired_corners = np.zeros(len(selected_matches_id)*2)
             marker_corners = np.zeros(len(selected_matches_id)*2)
+            # selected_matches = [(0,0),(0,0),(0,0)]
 
             for i in range(0,len(selected_matches_id)):
                 desired_m = desiredkps_npa[matches[selected_matches_id[i]][1]]
@@ -183,17 +194,17 @@ class IbvsEih(object):
                 detected_m = detectedkps_npa[matches[selected_matches_id[i]][0]]
                 marker_corners[2*i] = detected_m[0]
                 marker_corners[2*i+1] = detected_m[1]
+                # selected_matches[i] = matches[selected_matches_id[i]] 
 
-            print desired_corners
+            # print desired_corners
+            # vis = self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, matches, status)
+            # print 'selected_matches: ', selected_matches
+
+
 
             self.set_target(final_camera_depth,desired_corners)
 
-            if matches is None:
-                # print "no marker corners"
-                continue
-            if len(selected_matches_id) < 10:
-                print "no enough matching"
-                continue
+
 
             # Don't move if the target hasn't been set
             if not self._visual_servo._target_set:
@@ -203,12 +214,19 @@ class IbvsEih(object):
             # Get control law velocity and transform to body frame, then send to robot
             servo_vel, error = self._visual_servo.get_next_vel(corners = marker_corners)
             self._command_velocity(servo_vel)
-            print 'servo_vel: ', servo_vel
+            # print 'servo_vel: ', servo_vel
             # print 'before sleep'
             # print 'error: ', np.linalg.norm(error)
             # print rospy.is_shutdown()
-            r.sleep()
-            cv.WaitKey(1000)
+            # r.sleep()
+            # cv.WaitKey(1000)
+            vis = self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, matches, status)
+            # vis = -self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, selected_matches, np.ones(3))
+            cv2.imshow("Keypoint Matches", vis)
+            cv2.waitKey(0)
+
+            rospy.sleep(2)
+
 
 
 
@@ -360,7 +378,6 @@ class IbvsEih(object):
         # Convert image from a ROS image message to a CV image
         try:
             self.cv_image = cv_bridge.CvBridge().imgmsg_to_cv2(data, "bgr8")
-            cv.WaitKey(1000)
         except cv_bridge.CvBridgeError, e:
             print e
 
@@ -403,7 +420,7 @@ def main(args):
     # print 'published'
 
     # Set desired camera depth and desired feature coordinates as well as distance from goal before stopping
-    final_camera_depth = -0.19
+    final_camera_depth = 0.01
     # desired_corners = np.array([10,10,-10,10,10,-10,-10,-10])
     img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo3.png')
     img = cv2.resize(img, (960, 600)) 
@@ -416,7 +433,7 @@ def main(args):
     msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8")
     ibvseih.pub.publish(msg)
 
-    dist_tol = 0.5
+    dist_tol = 5
     
     ibvseih.move_to_position(final_camera_depth, img, desiredkps, desiredkps_npa, desiredFeatures,dist_tol)
 
