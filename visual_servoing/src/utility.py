@@ -61,11 +61,15 @@ def generate_frame_transform(t,R,isarm):
     i.e. (v_new;w_new) = transform * (v_old;w_old)
     """
     r_t=-np.dot(np.transpose(R),t)
+    # print 'r_t: ', r_t
     skew_matrix=generate_skew_mat(r_t)
+    # print 'skew_matrix: ', skew_matrix
+    # skew_matrix=generate_skew_mat(t)
     # Needs fixing
     if isarm:
         transform_top=np.concatenate((R,np.zeros((3,3))),axis=1)
     else:
+        # transform_top=np.concatenate((R,np.dot(skew_matrix,R)),axis=1)
         transform_top=np.concatenate((R,-np.dot(R,skew_matrix)),axis=1)
         
     transform_bottom=np.concatenate((np.zeros((3,3)),R),axis=1)

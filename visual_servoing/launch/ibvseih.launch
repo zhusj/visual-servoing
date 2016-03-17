@@ -2,7 +2,7 @@
 
 <launch>
   <!-- ibvseih -->
-  <node pkg="visual_servoing" type="ibvs_eih.py" name="ibvs_eih" output="screen" required="true"/>
+  <node pkg="visual_servoing" type="ibvs_eih_circle.py" name="ibvs_eih" output="screen" required="true"/>
 
 <!-- apriltag_detector -->
 <!--   <node pkg="apriltags_ros" type="apriltag_detector_node" name="apriltag_detector_node" required="true" output="screen">

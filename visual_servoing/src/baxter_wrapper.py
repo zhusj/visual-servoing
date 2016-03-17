@@ -51,18 +51,24 @@ class BaxterVS(object):
         # Possibly GRASP specific function?
         hand_pose = baxter.get_arm_pose(self._limb)
         # print 'hand_pose:', hand_pose
-        # print 'hand_pose.position:', hand_pose.position
+        print 'hand_pose.position:', hand_pose.position
         (t,R) = get_t_R(hand_pose)
         # print 't:', t
-        hand2body = generate_frame_transform(t[0:3,:],R[0:3,0:3],True)
-        return np.dot(hand2body,np.dot(cam2hand,vector))
+        hand2base = generate_frame_transform(t[0:3,:],R[0:3,0:3],True)
+        return np.dot(hand2base,np.dot(cam2hand,vector))
+        # return np.dot(cam2hand,vector)
         
     def set_hand_vel(self,vel):
         """
         Given a 6x1 twist vector, sets the corresponding joint velocities using the PyKDL package.
         """
          # Calculate joint velocities to achieve desired velocity
+        
         joint_vels=np.dot(self._kin.jacobian_pseudo_inverse(),vel)
+
+        while any(np.abs(i) >= 0.8 for i in joint_vels):
+            joint_vels = joint_vels * 0.5
+
         joints=dict(zip(self._arm.joint_names(),(joint_vels)))
         
         print 'joints: ', joints

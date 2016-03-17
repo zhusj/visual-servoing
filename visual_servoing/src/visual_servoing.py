@@ -49,7 +49,7 @@ class VisualServoing(object):
 
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda=0.01
+        self._lambda = 0.5
 
         self._target_set=False
         
@@ -134,15 +134,46 @@ class VisualServoing(object):
             L = self._generate_L(t,R)
             target_feature = self._calc_feature(t,R)
         error = target_feature - self._ideal_feature
-
-        # print 'target_feature: ', target_feature[0:4]
-        # print 'self._ideal_feature: ', self._ideal_feature[0:4]
-        # print 'error: ', error
-
+        error_norm = np.linalg.norm(error)
+        # print 'target_feature: ', target_feature[0:6]
+        # print 'self._ideal_feature: ', self._ideal_feature[0:6]
+        print 'error: ', error
+        print 'error norm: ', error_norm
         # print self._L
-        # print 'L: ',L
-        print 'error:', np.linalg.norm(error)/len(error)
-        vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
-        print 'vel: ', vel
+        
+        # print 'L inv: ', np.linalg.pinv(L)
+        # print 'error:', np.linalg.norm(error)/len(error)
 
+        self._Lc=np.matlib.zeros((len(corners),6))
+
+        for i in range(0,len(corners)/2):
+            x=corners[i*2]
+            y=corners[i*2+1]
+            p = self._ideal_cam_pose
+            # print 'Z: ', p[2]
+            Z=p[2]
+            self._Lc[i*2:i*2+2,:]=np.matrix([[-1/Z,0,x/Z,x*y,-(1+x*x),y],[0,-1/Z,y/Z,1+y*y,-x*y,-x]])
+        # L = (L+self._Lc)/2
+
+        # print np.dot(np.linalg.pinv(L),error)
+        print 'L: ',L
+
+        vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
+        ratio = error_norm/800
+        thresh = 1
+        # if np.abs(vel[0]) > thresh or np.abs(vel[1]) > thresh:
+        #     print 'out of limit'
+        #     vel = ratio * vel
+
+
+        # if np.linalg.norm(error) < 300:
+        #     vel = -0.01*np.dot(np.linalg.pinv(L),error)
+        # else:
+        #     vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
+        # vel[0] = vel[0]
+        # vel[1] = - vel[1]
+        print 'cam_vel: ', vel
+        # vel = 0*np.dot(np.linalg.pinv(L),error)
+        # vel[1] = -0.1
+        # print 'cam_vel: ', vel
         return vel, error
