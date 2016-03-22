@@ -30,6 +30,8 @@ from geometry_msgs.msg import (
 
 import struct
 
+import baxter
+
 class VisualServoing(object):
     """
     General visual servoing class to perform either image based visual servoing (ibvs) or 
@@ -49,7 +51,7 @@ class VisualServoing(object):
 
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda = 0.5
+        self._lambda = 0.6
 
         self._target_set=False
         
@@ -82,7 +84,7 @@ class VisualServoing(object):
         """
         self._ideal_feature = np.matlib.zeros((len(self._ideal_corners),1))
         self._L=np.matlib.zeros((len(self._ideal_corners),6))
-
+        gamma = 410
         for i in range(0,len(self._ideal_corners)/2):
             x=self._ideal_corners[i*2]
             y=self._ideal_corners[i*2+1]
@@ -91,7 +93,7 @@ class VisualServoing(object):
             p = self._ideal_cam_pose
             # print 'Z: ', p[2]
             Z=p[2]
-            self._L[i*2:i*2+2,:]=np.matrix([[-1/Z,0,x/Z,x*y,-(1+x*x),y],[0,-1/Z,y/Z,1+y*y,-x*y,-x]])
+            self._L[i*2:i*2+2,:]=np.matrix([[-gamma/Z,0,x/Z,x*y/gamma,-gamma-x*x/gamma,y],[0,-gamma/Z,y/Z,gamma+y*y/gamma,-x*y/gamma,-x]])
 
     def _generate_L(self,t,R):
         """
@@ -134,10 +136,10 @@ class VisualServoing(object):
             L = self._generate_L(t,R)
             target_feature = self._calc_feature(t,R)
         error = target_feature - self._ideal_feature
-        error_norm = np.linalg.norm(error)
+        error_norm = np.linalg.norm(error)/(len(corners)/2)
         # print 'target_feature: ', target_feature[0:6]
         # print 'self._ideal_feature: ', self._ideal_feature[0:6]
-        print 'error: ', error
+        # print 'error: ', error
         print 'error norm: ', error_norm
         # print self._L
         
@@ -146,25 +148,44 @@ class VisualServoing(object):
 
         self._Lc=np.matlib.zeros((len(corners),6))
 
+        hand_pose = baxter.get_arm_pose('left')
+        # print 'hand_pose:', hand_pose
+        Z = 0.3+hand_pose.position.z
+        print 'Z: ', Z 
+        gamma =410
         for i in range(0,len(corners)/2):
             x=corners[i*2]
             y=corners[i*2+1]
             p = self._ideal_cam_pose
             # print 'Z: ', p[2]
-            Z=p[2]
-            self._Lc[i*2:i*2+2,:]=np.matrix([[-1/Z,0,x/Z,x*y,-(1+x*x),y],[0,-1/Z,y/Z,1+y*y,-x*y,-x]])
-        # L = (L+self._Lc)/2
-
+            # Z=p[2]
+            self._Lc[i*2:i*2+2,:]=np.matrix([[-gamma/Z,0,x/Z,x*y/gamma,-gamma-x*x/gamma,y],[0,-gamma/Z,y/Z,gamma+y*y/gamma,-x*y/gamma,-x]])
+        
+        L = (L+self._Lc)/2
+        # L = self._Lc
         # print np.dot(np.linalg.pinv(L),error)
-        print 'L: ',L
+        # print 'L: ',L
+        
 
         vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
-        ratio = error_norm/800
-        thresh = 1
-        # if np.abs(vel[0]) > thresh or np.abs(vel[1]) > thresh:
-        #     print 'out of limit'
-        #     vel = ratio * vel
 
+        # if error_norm < 11:
+           
+
+        # if hand_pose.position.z < -0.135 and error_norm > 9:
+        #     # vel[0] = 3* vel[0]
+        #     # vel[1] = 3* vel[1]
+        #     vel[2] = 0
+            # vel[5] = 0
+        # ratio = max(np.abs(vel))#error_norm/100
+        # thresh = 0.05
+        # while np.abs(vel[0]) > thresh or np.abs(vel[1]) > thresh:
+        #     print 'out of limit'
+        #     print 'cam_vel: ', vel
+        #     if math.isinf(np.abs(vel[0])):
+        #         vel = np.zeros(6)
+        #         continue
+        #     vel = vel/ratio*0.05
 
         # if np.linalg.norm(error) < 300:
         #     vel = -0.01*np.dot(np.linalg.pinv(L),error)
@@ -172,8 +193,9 @@ class VisualServoing(object):
         #     vel = -self._lambda*np.dot(np.linalg.pinv(L),error)
         # vel[0] = vel[0]
         # vel[1] = - vel[1]
-        print 'cam_vel: ', vel
+        
         # vel = 0*np.dot(np.linalg.pinv(L),error)
+        # vel[0] = 0.1
         # vel[1] = -0.1
-        # print 'cam_vel: ', vel
+        print 'cam_vel: ', vel
         return vel, error

@@ -12,8 +12,8 @@ import cv, cv2
 from tf.transformations import *
 import tf
 # Don't include these classes if you aren't using AprilTags or Baxter
-from apriltag_client import AprilTagClient
-from apriltags_ros.msg import AprilTagDetectionArray
+# from apriltag_client import AprilTagClient
+# from apriltags_ros.msg import AprilTagDetectionArray
 from baxter_wrapper import BaxterVS
 
 
@@ -38,6 +38,8 @@ import baxter_interface
 import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image
 import cv_bridge
+import time
+import baxter
 
 class IbvsEih(object):
     """
@@ -49,9 +51,12 @@ class IbvsEih(object):
         limb='left'
         self._baxter = BaxterVS(limb)
 
+        self.gripper = baxter_interface.Gripper(limb)
+        self.gripper.calibrate()
+
         self.golf_ball_x = 0.8                        # x     = front back
         self.golf_ball_y = 0.10                        # y     = left right
-        self.golf_ball_z = 0.15                        # z     = up down
+        self.golf_ball_z = -0.0                        # z     = up down
         self.roll        = -1.0 * math.pi              # roll  = horizontal
         self.pitch       = 0.0 * math.pi               # pitch = vertical
         self.yaw         = 0.0 * math.pi               # yaw   = rotation
@@ -67,7 +72,7 @@ class IbvsEih(object):
         # AprilTag specific code. You don't need this if you're using another tracking system.
         # Initializes the marker that the arm should track
         target_marker = 0
-        self._apriltag_client = AprilTagClient(target_marker)
+        # self._apriltag_client = AprilTagClient(target_marker)
 
         self._visual_servo = VisualServoing(ibvs=True)
 
@@ -95,25 +100,25 @@ class IbvsEih(object):
             return True
         return False
 
-    def _get_detected_corners(self):
-        """
-        Returns the most recently detected corners in the image.
-        """
-        # This method currently uses AprilTag detections, so replace with
-        # your own method if otherwise.
-        # print "looking for corners"
-        return self._apriltag_client.corners
+    # def _get_detected_corners(self):
+    #     """
+    #     Returns the most recently detected corners in the image.
+    #     """
+    #     # This method currently uses AprilTag detections, so replace with
+    #     # your own method if otherwise.
+    #     # print "looking for corners"
+    #     return self._apriltag_client.corners
     
-    def _command_velocity(self,servo_vel):
+    def _command_velocity(self,cam_vel,error_norm):
         """
         Move the camera at the specified v and omega in vel (6x1 vector).
         """
         # This method currently commands the Baxter robot from Rethink Robotics.
         #Replace with your own method if using another manipulator.
         
-        baxter_vel = self._baxter.cam_to_body(servo_vel)
-        print 'baxter_vel: ', baxter_vel
-        self._baxter.set_hand_vel(baxter_vel)
+        hand_vel_in_base = self._baxter.cam_to_body(cam_vel)
+        # print 'baxter_vel: ', baxter_vel
+        self._baxter.set_hand_vel(hand_vel_in_base, error_norm)
     
     def set_target(self,final_camera_depth,desired_corners):
         """
@@ -135,8 +140,9 @@ class IbvsEih(object):
         
         # self.set_target(final_camera_depth,desired_corners)
         # r = rospy.Rate(60)
-        error = 1000
-        while np.linalg.norm(error)>dist_tol and not rospy.is_shutdown():
+        error_norm = 1000
+        hand_pose = baxter.get_arm_pose('left')
+        while error_norm>dist_tol and not rospy.is_shutdown() and not hand_pose.position.z < -0.171:
             # if not self.new_image_arrived():
             #     # print " no new_image_arrived"
             #     continue
@@ -160,6 +166,8 @@ class IbvsEih(object):
 
             ratio=0.75
             reprojThresh=4.0
+            # print 'desiredkps_npa: ', desiredkps_npa
+            # print 'desiredFeatures: ', desiredFeatures
             (matches, H, status) = self.matchKeypoints(desiredkps_npa, detectedkps_npa, desiredFeatures, detectedFeatures, ratio, reprojThresh)
             selected_matches_id = np.where(status != 0)[0]
             # if matches is None:
@@ -184,7 +192,7 @@ class IbvsEih(object):
             # print 'mathces[1]:', matches[1][0]
 
             desired_corners = np.zeros(len(selected_matches_id)*2)
-            marker_corners = np.zeros(len(selected_matches_id)*2)
+            detected_corners = np.zeros(len(selected_matches_id)*2)
             # selected_matches = [(0,0),(0,0),(0,0)]
 
             for i in range(0,len(selected_matches_id)):
@@ -192,15 +200,14 @@ class IbvsEih(object):
                 desired_corners[2*i] = desired_m[0]
                 desired_corners[2*i+1] = desired_m[1]
                 detected_m = detectedkps_npa[matches[selected_matches_id[i]][0]]
-                marker_corners[2*i] = detected_m[0]
-                marker_corners[2*i+1] = detected_m[1]
+                detected_corners[2*i] = detected_m[0]
+                detected_corners[2*i+1] = detected_m[1]
                 # selected_matches[i] = matches[selected_matches_id[i]] 
 
-            # print desired_corners
+            # print 'desired_corners: ', desired_corners
+            # print 'detected_corners: ', detected_corners
             # vis = self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, matches, status)
             # print 'selected_matches: ', selected_matches
-
-
 
             self.set_target(final_camera_depth,desired_corners)
 
@@ -212,8 +219,9 @@ class IbvsEih(object):
                 continue
             
             # Get control law velocity and transform to body frame, then send to robot
-            servo_vel, error = self._visual_servo.get_next_vel(corners = marker_corners)
-            self._command_velocity(servo_vel)
+            cam_vel, error = self._visual_servo.get_next_vel(corners = detected_corners)
+            error_norm = np.linalg.norm(error)/(len(detected_corners)/2)
+            self._command_velocity(cam_vel, error_norm)
             # print 'servo_vel: ', servo_vel
             # print 'before sleep'
             # print 'error: ', np.linalg.norm(error)
@@ -223,9 +231,58 @@ class IbvsEih(object):
             vis = self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, matches, status)
             # vis = -self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, selected_matches, np.ones(3))
             cv2.imshow("Keypoint Matches", vis)
-            cv2.waitKey(0)
+            # cv2.waitKey(0)
 
-            rospy.sleep(2)
+            rospy.sleep(0.8)
+
+
+
+
+        # hand_pose = baxter.get_arm_pose('left')
+        # print 'hand_pose:', hand_pose
+
+        # self.golf_ball_x = hand_pose.position.x                       # x     = front back
+        # self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        # self.golf_ball_z = hand_pose.position.z - 0.03                        # z     = up down
+        # self.orientation = hand_pose.orientation
+
+        # self.pose = (self.golf_ball_x,
+        #                 self.golf_ball_y,
+        #                 self.golf_ball_z,
+        #                 self.orientation.x,
+        #                 self.orientation.y,
+        #                 self.orientation.z,
+        #                 self.orientation.w)
+
+        # print
+
+        # print 'ready to move'
+        # self.baxter_ik_move('left', self.pose)
+
+        # time.sleep(2)
+
+        self.gripper.close()
+        time.sleep(2)
+
+        print 'hand_pose:', hand_pose
+
+        self.golf_ball_x = hand_pose.position.x                       # x     = front back
+        self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        self.golf_ball_z = hand_pose.position.z + 0.15                        # z     = up down
+        self.orientation = hand_pose.orientation
+
+        self.pose = (self.golf_ball_x,
+                        self.golf_ball_y,
+                        self.golf_ball_z,
+                        self.orientation.x,
+                        self.orientation.y,
+                        self.orientation.z,
+                        self.orientation.w)
+
+        print
+
+        print 'ready to move'
+        self.baxter_ik_move('left', self.pose)
 
 
 
@@ -259,7 +316,7 @@ class IbvsEih(object):
                 # self.other_limb_interface.move_to_joint_positions(limb_joints)
         else:
             # display invalid move message on head display
-            self.splash_screen("Invalid", "move")
+            # self.splash_screen("Invalid", "move")
             # little point in continuing so exit with error message
             print "requested move =", rpy_pose
             sys.exit("ERROR - baxter_ik_move - No valid joint configuration found")
@@ -420,22 +477,27 @@ def main(args):
     # print 'published'
 
     # Set desired camera depth and desired feature coordinates as well as distance from goal before stopping
-    final_camera_depth = 0.01
+    final_camera_depth = 0.1
     # desired_corners = np.array([10,10,-10,10,10,-10,-10,-10])
-    img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo3.png')
+    img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo4.png')
     img = cv2.resize(img, (960, 600)) 
     (desiredkps, desiredkps_npa, desiredFeatures) = ibvseih.detectAndDescribe(img)
 
-    # img=cv2.drawKeypoints(img,desiredkps)
+    imgs=cv2.drawKeypoints(img,desiredkps)
     
     # plt.figure(1);
-    # plt.show(plt.imshow(img))
+    # plt.show(plt.imshow(imgs))
+    # cv2.waitKey(0)
     msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8")
     ibvseih.pub.publish(msg)
 
-    dist_tol = 5
-    
+    dist_tol = 2.2
+    # print desiredkps[0:4]
+    # print desiredkps_npa[0:4]
+    # print desiredFeatures[0:4]
     ibvseih.move_to_position(final_camera_depth, img, desiredkps, desiredkps_npa, desiredFeatures,dist_tol)
+
+
 
 if __name__ == "__main__":
     try:

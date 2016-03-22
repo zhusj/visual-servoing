@@ -63,6 +63,7 @@ def generate_frame_transform(t,R,isarm):
     r_t=-np.dot(np.transpose(R),t)
     # print 'r_t: ', r_t
     skew_matrix=generate_skew_mat(r_t)
+    # skew_matrix=generate_skew_mat(t)
     # print 'skew_matrix: ', skew_matrix
     # skew_matrix=generate_skew_mat(t)
     # Needs fixing

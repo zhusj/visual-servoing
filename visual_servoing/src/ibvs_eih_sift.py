@@ -421,7 +421,7 @@ def main(args):
     # print 'published'
 
     # Set desired camera depth and desired feature coordinates as well as distance from goal before stopping
-    final_camera_depth = 0.1
+    final_camera_depth = 0.11
     # desired_corners = np.array([10,10,-10,10,10,-10,-10,-10])
     img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo3.png')
     img = cv2.resize(img, (960, 600)) 

@@ -58,7 +58,7 @@ class BaxterVS(object):
         return np.dot(hand2base,np.dot(cam2hand,vector))
         # return np.dot(cam2hand,vector)
         
-    def set_hand_vel(self,vel):
+    def set_hand_vel(self,vel,error_norm):
         """
         Given a 6x1 twist vector, sets the corresponding joint velocities using the PyKDL package.
         """
@@ -66,11 +66,12 @@ class BaxterVS(object):
         
         joint_vels=np.dot(self._kin.jacobian_pseudo_inverse(),vel)
 
-        while any(np.abs(i) >= 0.8 for i in joint_vels):
-            joint_vels = joint_vels * 0.5
+        # threshold = min(0.3, error_norm/30)
+        # while any(np.abs(i) >= threshold for i in joint_vels):
+        #     joint_vels = joint_vels * 0.8
 
         joints=dict(zip(self._arm.joint_names(),(joint_vels)))
         
-        print 'joints: ', joints
+        # print 'joints: ', joints
 
         self._arm.set_joint_velocities(joints)

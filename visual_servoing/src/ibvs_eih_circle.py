@@ -50,8 +50,8 @@ class IbvsEih(object):
         self._baxter = BaxterVS(limb)
 
         self.golf_ball_x = 0.8                        # x     = front back
-        self.golf_ball_y = 0.10                        # y     = left right
-        self.golf_ball_z = 0.1                        # z     = up down
+        self.golf_ball_y = 0.25                        # y     = left right
+        self.golf_ball_z = -0.1                        # z     = up down
         self.roll        = -1.0 * math.pi              # roll  = horizontal
         self.pitch       = 0.0 * math.pi               # pitch = vertical
         self.yaw         = 0.0 * math.pi               # yaw   = rotation
@@ -104,7 +104,7 @@ class IbvsEih(object):
     #     # print "looking for corners"
     #     return self._apriltag_client.corners
     
-    def _command_velocity(self,cam_vel):
+    def _command_velocity(self,cam_vel,error_norm):
         """
         Move the camera at the specified v and omega in vel (6x1 vector).
         """
@@ -113,7 +113,7 @@ class IbvsEih(object):
         
         hand_vel_in_base = self._baxter.cam_to_body(cam_vel)
         # print 'baxter_vel: ', baxter_vel
-        self._baxter.set_hand_vel(hand_vel_in_base)
+        self._baxter.set_hand_vel(hand_vel_in_base,error_norm)
     
     def set_target(self,final_camera_depth,desired_corners):
         """
@@ -135,8 +135,9 @@ class IbvsEih(object):
         
         # self.set_target(final_camera_depth,desired_corners)
         # r = rospy.Rate(60)
-        error = 1000
-        while np.linalg.norm(error)>dist_tol and not rospy.is_shutdown():
+
+        error_norm = 1000
+        while error_norm>dist_tol and not rospy.is_shutdown():
             # if not self.new_image_arrived():
             #     # print " no new_image_arrived"
             #     continue
@@ -156,10 +157,10 @@ class IbvsEih(object):
             # cv2.waitKey(0)
 
             # detect circles in the image
-            currentCircles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 2, 80)
+            currentCircles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 2, 60)
 
-            print 'desiredCircles: ', desiredCircles
-            print 'currentCircles: ', currentCircles
+            # print 'desiredCircles: ', desiredCircles
+            # print 'currentCircles: ', currentCircles
 
             FoundThreeCircles = False
 
@@ -174,7 +175,7 @@ class IbvsEih(object):
                 i = 0
                 for (x, y, r) in currentCircles:
                     print 'r: ', r
-                    if r < 80 and r > 30 :
+                    if r < 1100 and r > 30 :
                         # draw the circle in the output image, then draw a rectangle
                         # corresponding to the center of the circle
                         cv2.circle(currentI, (x, y), r, (0, 255, 0), 4)
@@ -264,7 +265,8 @@ class IbvsEih(object):
             
             # Get control law velocity and transform to body frame, then send to robot
             cam_vel, error = self._visual_servo.get_next_vel(corners = current_centers)
-            self._command_velocity(cam_vel)
+            error_norm = np.linalg.norm(error)
+            self._command_velocity(cam_vel, error_norm)
             # print 'servo_vel: ', servo_vel
             # print 'before sleep'
             
