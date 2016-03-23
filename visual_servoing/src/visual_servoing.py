@@ -51,7 +51,7 @@ class VisualServoing(object):
 
         # Gain on controller, essentially sets arm speed, although too high of a value will cause the
         # function to diverge.
-        self._lambda = 0.6
+        self._lambda = 0.8
 
         self._target_set=False
         
@@ -161,7 +161,7 @@ class VisualServoing(object):
             # Z=p[2]
             self._Lc[i*2:i*2+2,:]=np.matrix([[-gamma/Z,0,x/Z,x*y/gamma,-gamma-x*x/gamma,y],[0,-gamma/Z,y/Z,gamma+y*y/gamma,-x*y/gamma,-x]])
         
-        L = (L+self._Lc)/2
+        # L = (L+self._Lc)/2
         # L = self._Lc
         # print np.dot(np.linalg.pinv(L),error)
         # print 'L: ',L

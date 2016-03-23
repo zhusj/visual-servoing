@@ -38,7 +38,7 @@ import baxter_interface
 import matplotlib.pyplot as plt
 from sensor_msgs.msg import Image
 import cv_bridge
-import time
+import time, os
 import baxter
 
 class IbvsEih(object):
@@ -54,11 +54,11 @@ class IbvsEih(object):
         self.gripper = baxter_interface.Gripper(limb)
         self.gripper.calibrate()
 
-        self.golf_ball_x = 0.8                        # x     = front back
-        self.golf_ball_y = 0.10                        # y     = left right
-        self.golf_ball_z = -0.0                        # z     = up down
+        self.golf_ball_x = 0.85                        # x     = front back
+        self.golf_ball_y = 0.2                        # y     = left right
+        self.golf_ball_z = 0.25                        # z     = up down
         self.roll        = -1.0 * math.pi              # roll  = horizontal
-        self.pitch       = 0.0 * math.pi               # pitch = vertical
+        self.pitch       = -0.5 * math.pi               # pitch = vertical
         self.yaw         = 0.0 * math.pi               # yaw   = rotation
 
         self.pose = (self.golf_ball_x,
@@ -69,6 +69,18 @@ class IbvsEih(object):
                         self.yaw)
         print 'ready to move'
         self.baxter_ik_move(limb, self.pose)
+        # self.golf_ball_x = self.golf_ball_x + 0.010
+        # # self.golf_ball_y = self.golf_ball_y - 0.10
+        # # self.golf_ball_z = self.golf_ball_z + 0.10  
+        # self.pitch = self.pitch - 0.2 * math.pi 
+        # self.pose = (self.golf_ball_x,
+        #                 self.golf_ball_y,
+        #                 self.golf_ball_z,
+        #                 self.roll,
+        #                 self.pitch,
+        #                 self.yaw)
+        # print 'ready to move'
+        # self.baxter_ik_move(limb, self.pose)          
         # AprilTag specific code. You don't need this if you're using another tracking system.
         # Initializes the marker that the arm should track
         target_marker = 0
@@ -142,7 +154,8 @@ class IbvsEih(object):
         # r = rospy.Rate(60)
         error_norm = 1000
         hand_pose = baxter.get_arm_pose('left')
-        while error_norm>dist_tol and not rospy.is_shutdown() and not hand_pose.position.z < -0.171:
+        count = 1
+        while error_norm>dist_tol and not rospy.is_shutdown() and not hand_pose.position.z < -0.371:
             # if not self.new_image_arrived():
             #     # print " no new_image_arrived"
             #     continue
@@ -159,8 +172,7 @@ class IbvsEih(object):
             
             # plt.figure(1);
             # plt.show(plt.imshow(img))
-            msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8")
-            self.pub.publish(msg)
+
             # plt.figure(1);
             # plt.show(plt.imshow(img))
 
@@ -231,44 +243,67 @@ class IbvsEih(object):
             vis = self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, matches, status)
             # vis = -self.drawMatches(desiredImg, currentI, desiredkps_npa, detectedkps_npa, selected_matches, np.ones(3))
             cv2.imshow("Keypoint Matches", vis)
+            filename = '/home/pracsys/shaojun/visual_servoing_ws/'+str(count) +'.jpg'
+            cv2.imwrite(filename, vis)
             # cv2.waitKey(0)
 
+            msg = cv_bridge.CvBridge().cv2_to_imgmsg(vis, encoding="bgr8")
+            self.pub.publish(msg)
+
             rospy.sleep(0.8)
+            print 'count: ', count
+            count = count + 1
 
 
 
 
-        # hand_pose = baxter.get_arm_pose('left')
-        # print 'hand_pose:', hand_pose
-
-        # self.golf_ball_x = hand_pose.position.x                       # x     = front back
-        # self.golf_ball_y = hand_pose.position.y                       # y     = left right
-        # self.golf_ball_z = hand_pose.position.z - 0.03                        # z     = up down
-        # self.orientation = hand_pose.orientation
-
-        # self.pose = (self.golf_ball_x,
-        #                 self.golf_ball_y,
-        #                 self.golf_ball_z,
-        #                 self.orientation.x,
-        #                 self.orientation.y,
-        #                 self.orientation.z,
-        #                 self.orientation.w)
-
-        # print
-
-        # print 'ready to move'
-        # self.baxter_ik_move('left', self.pose)
-
-        # time.sleep(2)
-
-        self.gripper.close()
-        time.sleep(2)
-
+        hand_pose = baxter.get_arm_pose('left')
         print 'hand_pose:', hand_pose
 
+        self.golf_ball_x = hand_pose.position.x + 0.05                     # x     = front back
+        self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        self.golf_ball_z = hand_pose.position.z                        # z     = up down
+        self.orientation = hand_pose.orientation
+
+        self.pose = (self.golf_ball_x,
+                        self.golf_ball_y,
+                        self.golf_ball_z,
+                        self.orientation.x,
+                        self.orientation.y,
+                        self.orientation.z,
+                        self.orientation.w)
+
+        print
+
+        print 'ready to move'
+        self.baxter_ik_move('left', self.pose)
+
+        time.sleep(1)
+
+        self.gripper.close()
+        time.sleep(1)
+
+        hand_pose = baxter.get_arm_pose('left')
         self.golf_ball_x = hand_pose.position.x                       # x     = front back
         self.golf_ball_y = hand_pose.position.y                       # y     = left right
-        self.golf_ball_z = hand_pose.position.z + 0.15                        # z     = up down
+        self.golf_ball_z = hand_pose.position.z+0.03                       # z     = up down
+        self.orientation = hand_pose.orientation
+
+        self.pose = (self.golf_ball_x,
+                        self.golf_ball_y,
+                        self.golf_ball_z,
+                        self.orientation.x,
+                        self.orientation.y,
+                        self.orientation.z,
+                        self.orientation.w)
+
+        print 'ready to move'
+        self.baxter_ik_move('left', self.pose)
+
+        hand_pose = baxter.get_arm_pose('left')
+        self.golf_ball_x = hand_pose.position.x-0.15                       # x     = front back
+        self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        self.golf_ball_z = hand_pose.position.z                       # z     = up down
         self.orientation = hand_pose.orientation
 
         self.pose = (self.golf_ball_x,
@@ -332,9 +367,9 @@ class IbvsEih(object):
     def detectAndDescribe(self, image):
         # convert the image to grayscale
         image = cv2.resize(image, (960, 600)) 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        # gray = HSV[:,:,2] #1 or 2
+        # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        HSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        gray = HSV[:,:,1] #1 or 2
 
         # plt.figure(1);
         # plt.show(plt.imshow(HSV[:,:,0]))
@@ -477,9 +512,9 @@ def main(args):
     # print 'published'
 
     # Set desired camera depth and desired feature coordinates as well as distance from goal before stopping
-    final_camera_depth = 0.1
+    final_camera_depth = 0.11
     # desired_corners = np.array([10,10,-10,10,10,-10,-10,-10])
-    img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo4.png')
+    img = cv2.imread('/home/pracsys/shaojun/visual_servoing_ws/expo_shelf.png')
     img = cv2.resize(img, (960, 600)) 
     (desiredkps, desiredkps_npa, desiredFeatures) = ibvseih.detectAndDescribe(img)
 
@@ -491,7 +526,7 @@ def main(args):
     msg = cv_bridge.CvBridge().cv2_to_imgmsg(img, encoding="bgr8")
     ibvseih.pub.publish(msg)
 
-    dist_tol = 2.2
+    dist_tol = 4
     # print desiredkps[0:4]
     # print desiredkps_npa[0:4]
     # print desiredFeatures[0:4]
