@@ -55,10 +55,10 @@ class IbvsEih(object):
         self.gripper.calibrate()
 
         self.golf_ball_x = 0.85                        # x     = front back
-        self.golf_ball_y = 0.2                        # y     = left right
-        self.golf_ball_z = 0.25                        # z     = up down
+        self.golf_ball_y = 0.10                        # y     = left right
+        self.golf_ball_z = 0.0                        # z     = up down
         self.roll        = -1.0 * math.pi              # roll  = horizontal
-        self.pitch       = -0.5 * math.pi               # pitch = vertical
+        self.pitch       = 0.0 * math.pi               # pitch = vertical
         self.yaw         = 0.0 * math.pi               # yaw   = rotation
 
         self.pose = (self.golf_ball_x,

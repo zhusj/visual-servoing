@@ -32,6 +32,8 @@ from geometry_msgs.msg import (
 
 import struct
 
+import matplotlib.pyplot as plt
+
 class AprilTagClient(object):
     """
     Wrapper client class that communicates with the apriltags_ros package to 
@@ -86,8 +88,8 @@ class AprilTagClient(object):
         try:
             cv_image=self._bridge.imgmsg_to_cv2(image,"bgr8")
             self.image=cv_image
-            plt.figure(1);
-            plt.show(plt.imshow(cv_image))
+            # plt.figure(1);
+            # plt.show(plt.imshow(cv_image))
         except CvBridgeError, e:
             print e
 

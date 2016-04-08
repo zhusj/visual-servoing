@@ -11,10 +11,10 @@ import rospy
 import cv2
 from tf.transformations import *
 import tf
-from apriltag_client import AprilTagClient
+# from apriltag_client import AprilTagClient
 from baxter_wrapper import BaxterVS
 from visual_servoing import VisualServoing
-from apriltags_ros.msg import AprilTagDetectionArray
+# from apriltags_ros.msg import AprilTagDetectionArray
 
 from utility import *
 
@@ -30,18 +30,23 @@ from geometry_msgs.msg import (
     Quaternion,
 )
 
+import baxter_interface
+
 class PbvsEih(object):
     """
     Performs eye in hand (eih) image based visual servoing (ibvs). 
     """
     def __init__(self):
         # Sets the arm that is used for the servoing
-        limb='right'
+        limb='left'
         self._baxter = BaxterVS(limb)
+
+        self.gripper = baxter_interface.Gripper(limb)
+        self.gripper.calibrate()
 
         # Initializes the marker that the arm should track
         target_marker = 0
-        self._apriltag_client = AprilTagClient(target_marker)
+        # self._apriltag_client = AprilTagClient(target_marker)
 
         self._visual_servo = VisualServoing(False)    
         cv2.namedWindow("Detected tags",0)
@@ -50,24 +55,27 @@ class PbvsEih(object):
         """
         Runs one instance of the visual servoing control law. Call in a loop.
         """
-        key = -1
-        image = self._apriltag_client.image
-        if image is None:
-            return
+        # key = -1
+        # image = self._apriltag_client.image
+        # if image is None:
+        #     print 'no image'
+        #     return
         # Draw the ideal position if selected
         if self._visual_servo._target_set:
+            print 'target set'
             corners = self._visual_servo._ideal_corners
             for i in range(0,4):
                 # Camera intrinsics currently hard coded, tune as needed, 
                 # or add a subscriber to the camera_info message.
                 cv2.circle(image,(int(corners[i*2]*407.19+317.22),int(corners[i*2+1]*407.195786+206.752)),5,(255,0,0),5)
-        cv2.imshow("Detected tags",image)
-        key = cv2.waitKey(5)
+        # cv2.imshow("Detected tags",image)
+        # key = cv2.waitKey(5)
         
         # Return if no tag detected
         marker_pose = self._apriltag_client.marker_t
         marker_rot = self._apriltag_client.marker_R
-        marker_corners = self._apriltag_client.corners
+        # marker_corners = self._apriltag_client.corners
+        print 'marker_pose: ', marker_pose
         if marker_pose is None:
             return
 
@@ -78,8 +86,10 @@ class PbvsEih(object):
             self._apriltag_client.corners = None
         
             # Press any key to set a new target position for the servo control law.
+        print 'key: ', key
         if key !=-1:
             rospy.loginfo("Setting new target")
+            print 'desired_pose: ', marker_pose
             desired_corners = marker_corners
             desired_pose = marker_pose
             desired_rot = marker_rot
