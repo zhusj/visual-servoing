@@ -23,6 +23,7 @@ from std_msgs.msg import (
     UInt16,
 )
 
+from sensor_msgs.msg import Image
 from geometry_msgs.msg import (
     PoseStamped,
     Pose,
@@ -49,8 +50,27 @@ class PbvsEih(object):
         # self._apriltag_client = AprilTagClient(target_marker)
 
         self._visual_servo = VisualServoing(False)    
-        cv2.namedWindow("Detected tags",0)
-                    
+        # cv2.namedWindow("Detected tags",0)
+
+        self.marker_t=None
+        self.marker_R=None
+
+        self.target_obj_name = "expo_dry_erase_board_eraser"
+
+        simtrack_topic = "/simtrack/" + self.target_obj_name
+        print 'simtrack_topic: ', simtrack_topic
+        self.subscribe_to_simtrack(simtrack_topic)
+  
+
+    def get_pose(self, data):
+        print 'cam_pose: ', data.pose
+        (self.marker_t, self.marker_R) = get_t_R(data.pose)
+
+    def subscribe_to_simtrack(self, simtrack_topic):
+        print '\n subscribing'
+        sub = rospy.Subscriber(simtrack_topic, PoseStamped, self.get_pose)
+        print '\n end subscribing'
+
     def _main_iter(self):
         """
         Runs one instance of the visual servoing control law. Call in a loop.
@@ -61,19 +81,24 @@ class PbvsEih(object):
         #     print 'no image'
         #     return
         # Draw the ideal position if selected
-        if self._visual_servo._target_set:
-            print 'target set'
-            corners = self._visual_servo._ideal_corners
-            for i in range(0,4):
-                # Camera intrinsics currently hard coded, tune as needed, 
-                # or add a subscriber to the camera_info message.
-                cv2.circle(image,(int(corners[i*2]*407.19+317.22),int(corners[i*2+1]*407.195786+206.752)),5,(255,0,0),5)
+        # if self._visual_servo._target_set:
+        #     print 'target set'
+        #     corners = self._visual_servo._ideal_corners
+        #     for i in range(0,4):
+        #         # Camera intrinsics currently hard coded, tune as needed, 
+        #         # or add a subscriber to the camera_info message.
+        #         cv2.circle(image,(int(corners[i*2]*407.19+317.22),int(corners[i*2+1]*407.195786+206.752)),5,(255,0,0),5)
         # cv2.imshow("Detected tags",image)
         # key = cv2.waitKey(5)
         
+
+
+
+        
+
         # Return if no tag detected
-        marker_pose = self._apriltag_client.marker_t
-        marker_rot = self._apriltag_client.marker_R
+        marker_pose = self.marker_t
+        marker_rot = self.marker_R
         # marker_corners = self._apriltag_client.corners
         print 'marker_pose: ', marker_pose
         if marker_pose is None:
@@ -110,6 +135,8 @@ def main(args):
     while not rospy.is_shutdown():
         pbvseih._main_iter()
         r.sleep()
+
+    rospy.spin()
 
 if __name__ == "__main__":
     try:
