@@ -136,30 +136,30 @@ class VisualServoing(object):
             L = self._generate_L(t,R)
             target_feature = self._calc_feature(t,R)
         error = target_feature - self._ideal_feature
-        error_norm = np.linalg.norm(error)/(len(corners)/2)
+        # error_norm = np.linalg.norm(error)/(len(corners)/2)
         # print 'target_feature: ', target_feature[0:6]
         # print 'self._ideal_feature: ', self._ideal_feature[0:6]
         # print 'error: ', error
-        print 'error norm: ', error_norm
+        # print 'error norm: ', error_norm
         # print self._L
         
         # print 'L inv: ', np.linalg.pinv(L)
         # print 'error:', np.linalg.norm(error)/len(error)
 
-        self._Lc=np.matlib.zeros((len(corners),6))
+        # self._Lc=np.matlib.zeros((len(corners),6))
 
-        hand_pose = baxter.get_arm_pose('left')
-        # print 'hand_pose:', hand_pose
-        Z = 0.3+hand_pose.position.z
-        print 'Z: ', Z 
-        gamma =410
-        for i in range(0,len(corners)/2):
-            x=corners[i*2]
-            y=corners[i*2+1]
-            p = self._ideal_cam_pose
-            # print 'Z: ', p[2]
-            # Z=p[2]
-            self._Lc[i*2:i*2+2,:]=np.matrix([[-gamma/Z,0,x/Z,x*y/gamma,-gamma-x*x/gamma,y],[0,-gamma/Z,y/Z,gamma+y*y/gamma,-x*y/gamma,-x]])
+        # hand_pose = baxter.get_arm_pose('left')
+        # # print 'hand_pose:', hand_pose
+        # Z = 0.3+hand_pose.position.z
+        # print 'Z: ', Z 
+        # gamma =410
+        # for i in range(0,len(corners)/2):
+        #     x=corners[i*2]
+        #     y=corners[i*2+1]
+        #     p = self._ideal_cam_pose
+        #     # print 'Z: ', p[2]
+        #     # Z=p[2]
+        #     self._Lc[i*2:i*2+2,:]=np.matrix([[-gamma/Z,0,x/Z,x*y/gamma,-gamma-x*x/gamma,y],[0,-gamma/Z,y/Z,gamma+y*y/gamma,-x*y/gamma,-x]])
         
         # L = (L+self._Lc)/2
         # L = self._Lc
@@ -197,5 +197,5 @@ class VisualServoing(object):
         # vel = 0*np.dot(np.linalg.pinv(L),error)
         # vel[0] = 0.1
         # vel[1] = -0.1
-        print 'cam_vel: ', vel
+        # print 'cam_vel: ', vel
         return vel, error

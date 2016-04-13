@@ -34,7 +34,6 @@ from geometry_msgs.msg import (
 import baxter_interface
 import baxter
 from moveit_commander import conversions
-from baxter_core_msgs.srv import SolvePositionIK, SolvePositionIKRequest
 
 class PbvsEih(object):
     """
@@ -126,27 +125,24 @@ class PbvsEih(object):
         #     y: 0.999237092819
         #     z: 0.0247878443813
         #     w: 0.00300801503595
-        Success = False
         error_norm = 1
-        error_y = 1
-        dist_tol = 0.008
-        DesiredPose = Pose()
-        DesiredPose.position.x = .125581991683
-        DesiredPose.position.y = .056925803143
-        DesiredPose.position.z = .167849532136
-        DesiredPose.orientation.x = 0.00578534021301
-        DesiredPose.orientation.y = 0.999924139472
-        DesiredPose.orientation.z = 0.00808789160022
-        DesiredPose.orientation.w = 0.00726850397684
-        while error_norm > dist_tol or error_y > 0.005 :
+        dist_tol = 0.001
+        while error_norm > dist_tol:
+            DesiredPose = Pose()
+            DesiredPose.position.x = .125581991683
+            DesiredPose.position.y = .056925803143
+            DesiredPose.position.z = .167849532136
+            DesiredPose.orientation.x = 0.00578534021301
+            DesiredPose.orientation.y = 0.999924139472
+            DesiredPose.orientation.z = 0.00808789160022
+            DesiredPose.orientation.w = 0.00726850397684
 
             # Return if no tag detected
             marker_pose = self.marker_t
-            
             marker_rot = self.marker_R
             # marker_corners = self._apriltag_client.corners
             print 'marker_pose: ', marker_pose
-            # print 'marker_rot: ', marker_rot
+            print 'marker_rot: ', marker_rot
             if marker_pose is None:
                 return
 
@@ -179,75 +175,48 @@ class PbvsEih(object):
             baxter_vel = self._baxter.cam_to_body(servo_vel)
             # print 'baxter_vel: ', baxter_vel
             self._baxter.set_hand_vel(baxter_vel, error_norm)
-            error_y = np.abs(marker_pose[1]-DesiredPose.position.y)
-            print 'error_y: ', error_y
-            rospy.sleep(0.5)
+            rospy.sleep(0.9)
 
-        hand_pose = baxter.get_arm_pose('left')
-        print 'hand_pose:', hand_pose
+        # hand_pose = baxter.get_arm_pose('left')
+        # print 'hand_pose:', hand_pose
 
-        self.golf_ball_x = hand_pose.position.x                      # x     = front back
-        self.golf_ball_y = hand_pose.position.y                       # y     = left right
-        self.golf_ball_z = hand_pose.position.z -0.02                       # z     = up down
-        self.orientation = hand_pose.orientation
+        # self.golf_ball_x = hand_pose.position.x                      # x     = front back
+        # self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        # self.golf_ball_z = hand_pose.position.z -0.04                       # z     = up down
+        # self.orientation = hand_pose.orientation
 
-        self.pose = (self.golf_ball_x,
-                        self.golf_ball_y,
-                        self.golf_ball_z,
-                        self.orientation.x,
-                        self.orientation.y,
-                        self.orientation.z,
-                        self.orientation.w)
+        # self.pose = (self.golf_ball_x,
+        #                 self.golf_ball_y,
+        #                 self.golf_ball_z,
+        #                 self.orientation.x,
+        #                 self.orientation.y,
+        #                 self.orientation.z,
+        #                 self.orientation.w)
 
-        print 'ready to move'
-        self.baxter_ik_move('left', self.pose)
+        # print 'ready to move'
+        # self.baxter_ik_move('left', self.pose)
 
-        self.golf_ball_z = self.golf_ball_z -0.02                       # z     = up down
-        self.pose = (self.golf_ball_x,
-                        self.golf_ball_y,
-                        self.golf_ball_z,
-                        self.orientation.x,
-                        self.orientation.y,
-                        self.orientation.z,
-                        self.orientation.w)
+        # time.sleep(1)
 
-        print 'ready to move'
-        self.baxter_ik_move('left', self.pose)
+        # self.gripper.close()
+        # time.sleep(1)
 
-        self.golf_ball_z = self.golf_ball_z -0.02                       # z     = up down
-        self.pose = (self.golf_ball_x,
-                        self.golf_ball_y,
-                        self.golf_ball_z,
-                        self.orientation.x,
-                        self.orientation.y,
-                        self.orientation.z,
-                        self.orientation.w)
+        # hand_pose = baxter.get_arm_pose('left')
+        # self.golf_ball_x = hand_pose.position.x                       # x     = front back
+        # self.golf_ball_y = hand_pose.position.y                       # y     = left right
+        # self.golf_ball_z = hand_pose.position.z+0.03                       # z     = up down
+        # self.orientation = hand_pose.orientation
 
-        print 'ready to move'
-        self.baxter_ik_move('left', self.pose)
+        # self.pose = (self.golf_ball_x,
+        #                 self.golf_ball_y,
+        #                 self.golf_ball_z,
+        #                 self.orientation.x,
+        #                 self.orientation.y,
+        #                 self.orientation.z,
+        #                 self.orientation.w)
 
-        rospy.sleep(1)
-        self.gripper.close()
-        rospy.sleep(1)
-
-        hand_pose = baxter.get_arm_pose('left')
-        self.golf_ball_x = hand_pose.position.x                       # x     = front back
-        self.golf_ball_y = hand_pose.position.y                       # y     = left right
-        self.golf_ball_z = hand_pose.position.z+0.03                       # z     = up down
-        self.orientation = hand_pose.orientation
-
-        self.pose = (self.golf_ball_x,
-                        self.golf_ball_y,
-                        self.golf_ball_z,
-                        self.orientation.x,
-                        self.orientation.y,
-                        self.orientation.z,
-                        self.orientation.w)
-
-        print 'ready to move'
-        self.baxter_ik_move('left', self.pose)
-        Success = True
-        return Success
+        # print 'ready to move'
+        # self.baxter_ik_move('left', self.pose)
 
     def baxter_ik_move(self, limb, rpy_pose):
         quaternion_pose = conversions.list_to_pose_stamped(rpy_pose, "base")
@@ -295,9 +264,8 @@ def main(args):
     rospy.init_node('pbvs_eih')
     pbvseih = PbvsEih()
     r = rospy.Rate(60)
-    Success = False
-    while not rospy.is_shutdown() and not Success:
-        Success = pbvseih._main_iter()
+    while not rospy.is_shutdown():
+        pbvseih._main_iter()
         r.sleep()
 
     rospy.spin()

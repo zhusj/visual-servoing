@@ -51,10 +51,13 @@ class BaxterVS(object):
         # Possibly GRASP specific function?
         hand_pose = baxter.get_arm_pose(self._limb)
         # print 'hand_pose:', hand_pose
-        print 'hand_pose.position:', hand_pose.position
+        # print 'hand_pose.position:', hand_pose.position
         (t,R) = get_t_R(hand_pose)
         # print 't:', t
         hand2base = generate_frame_transform(t[0:3,:],R[0:3,0:3],True)
+        # print 'hand2base: ', hand2base
+        # print 'cam2hand: ', cam2hand
+        # print 'vector: ', vector
         return np.dot(hand2base,np.dot(cam2hand,vector))
         # return np.dot(cam2hand,vector)
         

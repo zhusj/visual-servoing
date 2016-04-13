@@ -50,8 +50,8 @@ def open_left_arm_cam_small():
 	head_cam = baxter_interface.camera.CameraController("head_camera")
 	head_cam.close()
 
-	x_res       = 960                       # Camera resolution
-	y_res       = 600
+	x_res       = 640                       # Camera resolution
+	y_res       = 400
 
 	# set camera parameters
 	cam.resolution          = (int(x_res), int(y_res))
